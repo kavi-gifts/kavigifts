@@ -261,27 +261,25 @@ export function CollectionFlipbook({
                 ‹
               </button>
 
-              {/* The Framed Canvas */}
-              <div className="relative aspect-[1/1.414] w-full max-w-[340px] sm:max-w-[400px] rounded-2xl bg-black p-3.5 shadow-2xl transition-all duration-300">
-                <div className="relative h-full w-full overflow-hidden rounded-lg bg-white shadow-inner">
-                  {currentImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={currentImage}
-                      alt={currentTitle}
-                      className="h-full w-full object-cover transition-opacity duration-300 select-none"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-sm text-foreground/40">
-                      Şəkil yoxdur
-                    </div>
-                  )}
+              {/* The Framed Canvas (1px qara çərçivə ilə) */}
+              <div className="relative aspect-[1/1.414] w-full max-w-[340px] sm:max-w-[400px] overflow-hidden rounded-xl border border-black bg-white shadow-xl transition-all duration-300">
+                {currentImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={currentImage}
+                    alt={currentTitle}
+                    className="h-full w-full object-cover transition-opacity duration-300 select-none"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-sm text-foreground/40">
+                    Şəkil yoxdur
+                  </div>
+                )}
 
-                  {/* Watermark branding hint */}
-                  <span className="absolute bottom-2 right-2 rounded-xs bg-black/40 px-1.5 py-0.5 text-[10px] text-white/80 backdrop-blur-xs">
-                    A4 Ölçü
-                  </span>
-                </div>
+                {/* Watermark branding hint */}
+                <span className="absolute bottom-2 right-2 rounded-xs bg-black/40 px-1.5 py-0.5 text-[10px] text-white/80 backdrop-blur-xs">
+                  A4 Ölçü
+                </span>
               </div>
 
               {/* Next arrow */}

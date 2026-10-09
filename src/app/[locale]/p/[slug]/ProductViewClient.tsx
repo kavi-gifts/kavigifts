@@ -151,24 +151,22 @@ export function ProductViewClient({
       <div className="grid grid-cols-1 items-start gap-10 md:grid-cols-2">
         {/* Left: Artwork Presentation with A4 Frame */}
         <div className="space-y-4">
-          <div className="relative mx-auto aspect-[1/1.4] w-full max-w-md overflow-hidden rounded-2xl bg-black p-3.5 shadow-xl">
-            <div className="relative h-full w-full overflow-hidden rounded-lg bg-white shadow-inner">
-              {activeImage ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={activeImage}
-                  alt={title}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-sm text-foreground/40">
-                  Şəkil yoxdur
-                </div>
-              )}
-              <span className="absolute bottom-2 right-2 rounded-xs bg-black/50 px-2 py-0.5 text-[10px] text-white">
-                A4 Ölçü
-              </span>
-            </div>
+          <div className="relative mx-auto aspect-[1/1.4] w-full max-w-md overflow-hidden rounded-xl border border-black bg-white shadow-xl">
+            {activeImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={activeImage}
+                alt={title}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-sm text-foreground/40">
+                Şəkil yoxdur
+              </div>
+            )}
+            <span className="absolute bottom-2 right-2 rounded-xs bg-black/50 px-2 py-0.5 text-[10px] text-white">
+              A4 Ölçü
+            </span>
           </div>
 
           {/* Thumbnail Gallery (if multiple images) */}
