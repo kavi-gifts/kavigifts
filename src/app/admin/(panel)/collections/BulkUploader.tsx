@@ -111,7 +111,9 @@ export function CollectionBulkUploader({
   const [busy, setBusy] = useState(false);
 
   async function onUpload() {
-    const files = Array.from(input.current?.files ?? []);
+    const files = Array.from(input.current?.files ?? []).sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: "base" })
+    );
     if (!files.length) {
       setStatus("Əvvəlcə şəkilləri seçin.");
       return;

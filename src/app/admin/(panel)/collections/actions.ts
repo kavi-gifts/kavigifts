@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { bool, num, readL10n, slugify, str, withTranslations } from "@/lib/forms";
-import { processAndUpload } from "@/lib/images";
+import { processAndUpload, removeImageFiles } from "@/lib/images";
 
 export async function saveCollection(formData: FormData) {
   const { supabase } = await requireAdmin();
@@ -106,7 +106,34 @@ export async function saveCollection(formData: FormData) {
 
 export async function deleteCollection(formData: FormData) {
   const { supabase } = await requireAdmin();
-  const { error } = await supabase.from("collections").delete().eq("id", str(formData, "id"));
+  const id = str(formData, "id");
+  if (!id) redirect("/admin/collections");
+
+  // 1. Kolleksiyaya aid məhsulları və onların şəkillərini storage-dən təmizlə
+  const { data: prods } = await supabase
+    .from("products")
+    .select("id")
+    .eq("collection_id", id);
+
+  if (prods && prods.length > 0) {
+    const prodIds = prods.map((p) => p.id);
+    const { data: imgs } = await supabase
+      .from("product_images")
+      .select("url_thumb,url_medium,url_large")
+      .in("product_id", prodIds);
+
+    await supabase.from("products").delete().in("id", prodIds);
+
+    if (imgs && imgs.length > 0) {
+      await removeImageFiles(
+        supabase,
+        imgs.flatMap((i) => [i.url_thumb, i.url_medium, i.url_large])
+      );
+    }
+  }
+
+  // 2. Kolleksiyanın özünü sil
+  const { error } = await supabase.from("collections").delete().eq("id", id);
   if (error) redirect(`/admin/collections?e=${encodeURIComponent(error.message)}`);
   revalidatePath("/", "layout");
   redirect("/admin/collections");
@@ -137,63 +164,159 @@ export async function bulkUploadToCollection(formData: FormData) {
     const cleanTitle =
       rawFileName.replace(/\.[a-zA-Z0-9]+$/, "").trim() || "Tablo";
 
-    // 3. Kolleksiyanın kod prefiksinə uyğun sıra ilə unikal kod generasiya et (məs. AOT-001, AOT-002)
+    // 3. Kolleksiyanın kod prefiksi (məs. AOT, DS)
     const prefix = ((col as { code?: string }).code || "TAB").trim().toUpperCase();
-    const { data: colProds } = await supabase
-      .from("products")
-      .select("code")
-      .eq("collection_id", col.id);
 
-    let maxNum = 0;
-    const regex = new RegExp(`^${prefix}-(\\d+)$`);
-    for (const p of colProds ?? []) {
-      const match = String(p.code).match(regex);
-      if (match) {
-        const n = parseInt(match[1], 10);
-        if (Number.isFinite(n) && n > maxNum) maxNum = n;
+    // 4. Əgər fayl adında birbaşa nömrə varsa (məs. DS-001, DS-1, DS_001, 001, 1), həmin nömrəni istifadə et!
+    const numMatch =
+      cleanTitle.match(new RegExp(`^(?:${prefix}[-_ ]*)?0*(\\d+)$`, "i")) ||
+      cleanTitle.match(/\b0*(\d+)\b/);
+
+    let targetCode = "";
+    if (numMatch && numMatch[1]) {
+      const parsedNum = parseInt(numMatch[1], 10);
+      if (Number.isFinite(parsedNum) && parsedNum > 0) {
+        targetCode = `${prefix}-${String(parsedNum).padStart(3, "0")}`;
       }
     }
-    const code = `${prefix}-${String(maxNum + 1).padStart(3, "0")}`;
 
-    // 4. Başlıq və slug
-    const titleL10n = await withTranslations({ az: cleanTitle });
-    const slug = slugify(`${cleanTitle}-${code}`);
+    // Əgər fayl adından nömrə çıxmadısa, bazadakı mövcud məhsulların ən böyük nömrəsindən sonrakını təyin et
+    if (!targetCode) {
+      const { data: allPrefixProds } = await supabase
+        .from("products")
+        .select("code")
+        .ilike("code", `${prefix}-%`);
 
-    // 5. Məhsulu kolleksiyanın təsviri və qiyməti ilə yarat
-    const { data: newProd, error: prodErr } = await supabase
+      let maxNum = 0;
+      const regex = new RegExp(`^${prefix}-(\\d+)$`, "i");
+      for (const p of allPrefixProds ?? []) {
+        const match = String(p.code).match(regex);
+        if (match) {
+          const n = parseInt(match[1], 10);
+          if (Number.isFinite(n) && n > maxNum) maxNum = n;
+        }
+      }
+      targetCode = `${prefix}-${String(maxNum + 1).padStart(3, "0")}`;
+    }
+
+    // 5. Yoxla: Bu kodla məhsul artıq mövcuddurmu?
+    const { data: existingProd } = await supabase
       .from("products")
-      .insert({
-        category_id: col.category_id,
-        collection_id: col.id,
-        type: "tablo",
-        code,
-        title: titleL10n,
-        slug,
-        description: col.description, // Kolleksiyanın haqqında mətni avtomatik şamil olunur
-        base_price: col.bundle_price, // Kolleksiya qiyməti şamil olunur
-        sale_price: col.bundle_sale_price, // Kolleksiya endirimi şamil olunur
-        currency: col.currency ?? "AZN",
-        is_active: true,
-      })
-      .select("id")
-      .single();
+      .select("id, collection_id")
+      .eq("code", targetCode)
+      .maybeSingle();
 
-    if (prodErr || !newProd) {
-      return { ok: false, error: prodErr?.message ?? "Məhsul yaradıla bilmədi." };
+    let productId = "";
+    const titleL10n = await withTranslations({ az: cleanTitle });
+    const slug = slugify(`${cleanTitle}-${targetCode}`);
+
+    if (existingProd) {
+      if (!existingProd.collection_id || existingProd.collection_id === col.id) {
+        // Bu məhsul artıq bu kolleksiyaya aiddir və ya orphaned qalıb -> məlumatlarını yeniləyirik
+        await supabase
+          .from("products")
+          .update({
+            collection_id: col.id,
+            category_id: col.category_id,
+            title: titleL10n,
+            slug,
+            description: col.description,
+            base_price: col.bundle_price,
+            sale_price: col.bundle_sale_price,
+            currency: col.currency ?? "AZN",
+            is_active: true,
+          })
+          .eq("id", existingProd.id);
+        productId = existingProd.id;
+      } else {
+        // Bu kod başqa bir kolleksiyaya aiddir -> sərbəst unikal kod tap
+        const { data: allCodes } = await supabase
+          .from("products")
+          .select("code")
+          .ilike("code", `${prefix}-%`);
+        const usedCodes = new Set((allCodes ?? []).map((c) => String(c.code).toUpperCase()));
+        let candidateSeq = 1;
+        while (usedCodes.has(`${prefix}-${String(candidateSeq).padStart(3, "0")}`)) {
+          candidateSeq++;
+        }
+        targetCode = `${prefix}-${String(candidateSeq).padStart(3, "0")}`;
+        const newSlug = slugify(`${cleanTitle}-${targetCode}`);
+
+        const { data: newProd, error: pErr } = await supabase
+          .from("products")
+          .insert({
+            category_id: col.category_id,
+            collection_id: col.id,
+            type: "tablo",
+            code: targetCode,
+            title: titleL10n,
+            slug: newSlug,
+            description: col.description,
+            base_price: col.bundle_price,
+            sale_price: col.bundle_sale_price,
+            currency: col.currency ?? "AZN",
+            is_active: true,
+          })
+          .select("id")
+          .single();
+        if (pErr || !newProd) return { ok: false, error: pErr?.message ?? "Məhsul yaradıla bilmədi." };
+        productId = newProd.id;
+      }
+    } else {
+      // Kod sərbəstdir -> yeni məhsul yaradırıq
+      const { data: newProd, error: pErr } = await supabase
+        .from("products")
+        .insert({
+          category_id: col.category_id,
+          collection_id: col.id,
+          type: "tablo",
+          code: targetCode,
+          title: titleL10n,
+          slug,
+          description: col.description,
+          base_price: col.bundle_price,
+          sale_price: col.bundle_sale_price,
+          currency: col.currency ?? "AZN",
+          is_active: true,
+        })
+        .select("id")
+        .single();
+      if (pErr || !newProd) return { ok: false, error: pErr?.message ?? "Məhsul yaradıla bilmədi." };
+      productId = newProd.id;
     }
 
     // 6. Şəkli sıx və yüklə
     const urls = await processAndUpload(supabase, file);
 
-    // 7. product_images cədvəlinə əlavə et
-    await supabase.from("product_images").insert({
-      product_id: newProd.id,
-      ...urls,
-      sort_order: 0,
-    });
+    // 7. Əgər bu məhsulun köhnə şəkli varsa, əvəzlə və köhnə faylları storage-dən sil
+    const { data: existingImgs } = await supabase
+      .from("product_images")
+      .select("id, url_thumb, url_medium, url_large")
+      .eq("product_id", productId);
+
+    if (existingImgs && existingImgs.length > 0) {
+      await supabase
+        .from("product_images")
+        .update({
+          ...urls,
+          sort_order: 0,
+        })
+        .eq("id", existingImgs[0].id);
+
+      await removeImageFiles(
+        supabase,
+        [existingImgs[0].url_thumb, existingImgs[0].url_medium, existingImgs[0].url_large]
+      );
+    } else {
+      await supabase.from("product_images").insert({
+        product_id: productId,
+        ...urls,
+        sort_order: 0,
+      });
+    }
 
     revalidatePath("/", "layout");
-    return { ok: true, code, title: cleanTitle };
+    return { ok: true, code: targetCode, title: cleanTitle };
   } catch (err) {
     return {
       ok: false,
@@ -201,3 +324,4 @@ export async function bulkUploadToCollection(formData: FormData) {
     };
   }
 }
+
