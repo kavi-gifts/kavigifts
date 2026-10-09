@@ -7,18 +7,92 @@ import { btnCls } from "@/components/admin/ui";
 
 const MAX_SIDE = 2000;
 
-/** Şəkli brauzerdə kiçildir (Vercel 4.5MB sorğu limiti + sürət üçün). */
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024; // 4MB Vercel limiti
+
+/** Şəkli brauzerdə təhlükəsiz sıxır; yaddaş sızmasının və xətanın qarşısını alır. */
 async function shrink(file: File): Promise<File> {
-  const bmp = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bmp.width * scale);
-  canvas.height = Math.round(bmp.height * scale);
-  canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-  const blob: Blob = await new Promise((res, rej) =>
-    canvas.toBlob((b) => (b ? res(b) : rej(new Error("Sıxma alınmadı"))), "image/webp", 0.85),
-  );
-  return new File([blob], "image.webp", { type: "image/webp" });
+  try {
+    let bmp: ImageBitmap | null = null;
+    try {
+      bmp = await createImageBitmap(file);
+      const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bmp.width * scale);
+      canvas.height = Math.round(bmp.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas context tapılmadı");
+      ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+      const blob: Blob = await new Promise((res, rej) =>
+        canvas.toBlob(
+          (b) => (b ? res(b) : rej(new Error("Sıxma alınmadı"))),
+          "image/webp",
+          0.85
+        )
+      );
+      canvas.width = 0;
+      canvas.height = 0;
+      return new File([blob], file.name.replace(/\.[a-zA-Z0-9]+$/, ".webp"), {
+        type: "image/webp",
+      });
+    } finally {
+      bmp?.close();
+    }
+  } catch {
+    try {
+      return await shrinkWithImgTag(file);
+    } catch {
+      if (file.size <= MAX_UPLOAD_BYTES) {
+        return file;
+      }
+      throw new Error(`"${file.name}" şəkli oxuna bilmədi və həcmi 4MB-dan böyükdür.`);
+    }
+  }
+}
+
+function shrinkWithImgTag(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      try {
+        const scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(file);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => {
+            canvas.width = 0;
+            canvas.height = 0;
+            if (!blob) return resolve(file);
+            resolve(
+              new File(
+                [blob],
+                file.name.replace(/\.[a-zA-Z0-9]+$/, ".webp"),
+                { type: "image/webp" }
+              )
+            );
+          },
+          "image/webp",
+          0.85
+        );
+      } catch {
+        resolve(file);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      if (file.size <= MAX_UPLOAD_BYTES) {
+        resolve(file);
+      } else {
+        reject(new Error("Şəkil faylı açıla bilmədi"));
+      }
+    };
+    img.src = url;
+  });
 }
 
 export function ImageUploader({ productId }: { productId: string }) {

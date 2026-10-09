@@ -6,22 +6,98 @@ import { bulkUploadToCollection } from "./actions";
 import { btnCls } from "@/components/admin/ui";
 
 const MAX_SIDE = 2000;
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024; // 4MB Vercel limiti
 
+/** Şəkli brauzerdə təhlükəsiz sıxır; yaddaş sızmasının və xətanın qarşısını alır. */
 async function shrink(file: File): Promise<File> {
-  const bmp = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bmp.width * scale);
-  canvas.height = Math.round(bmp.height * scale);
-  canvas.getContext("2d")!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-  const blob: Blob = await new Promise((res, rej) =>
-    canvas.toBlob(
-      (b) => (b ? res(b) : rej(new Error("Sıxma alınmadı"))),
-      "image/webp",
-      0.85
-    )
-  );
-  return new File([blob], file.name, { type: "image/webp" });
+  // 1. createImageBitmap ilə cəhd et (həmişə bmp.close() çağırılmalıdır!)
+  try {
+    let bmp: ImageBitmap | null = null;
+    try {
+      bmp = await createImageBitmap(file);
+      const scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bmp.width * scale);
+      canvas.height = Math.round(bmp.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Canvas context tapılmadı");
+      ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+      const blob: Blob = await new Promise((res, rej) =>
+        canvas.toBlob(
+          (b) => (b ? res(b) : rej(new Error("Sıxma alınmadı"))),
+          "image/webp",
+          0.85
+        )
+      );
+      canvas.width = 0;
+      canvas.height = 0;
+      return new File([blob], file.name.replace(/\.[a-zA-Z0-9]+$/, ".webp"), {
+        type: "image/webp",
+      });
+    } finally {
+      // YADDAŞI DƏRHAL AZAD ET (50+ şəkildə brauzerin dolmaması üçün mütləqdir!)
+      bmp?.close();
+    }
+  } catch {
+    // 2. createImageBitmap uğursuz olarsa, klassik HTMLImageElement ilə cəhd et
+    try {
+      return await shrinkWithImgTag(file);
+    } catch {
+      // 3. Əgər hər ikisi alınmazsa və fayl 4MB-dan kiçikdirsə, serverdəki sharp-a göndər
+      if (file.size <= MAX_UPLOAD_BYTES) {
+        return file;
+      }
+      throw new Error(
+        `"${file.name}" şəkli oxuna bilmədi və həcmi 4MB-dan böyükdür.`
+      );
+    }
+  }
+}
+
+function shrinkWithImgTag(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      try {
+        const scale = Math.min(1, MAX_SIDE / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return resolve(file);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => {
+            canvas.width = 0;
+            canvas.height = 0;
+            if (!blob) return resolve(file);
+            resolve(
+              new File(
+                [blob],
+                file.name.replace(/\.[a-zA-Z0-9]+$/, ".webp"),
+                { type: "image/webp" }
+              )
+            );
+          },
+          "image/webp",
+          0.85
+        );
+      } catch {
+        resolve(file);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      if (file.size <= MAX_UPLOAD_BYTES) {
+        resolve(file);
+      } else {
+        reject(new Error("Şəkil faylı açıla bilmədi"));
+      }
+    };
+    img.src = url;
+  });
 }
 
 export function CollectionBulkUploader({
@@ -44,6 +120,7 @@ export function CollectionBulkUploader({
     setBusy(true);
     let successCount = 0;
     let failed = 0;
+    const failedNames: string[] = [];
     let lastError = "";
 
     for (let i = 0; i < files.length; i++) {
@@ -63,20 +140,26 @@ export function CollectionBulkUploader({
           successCount++;
         } else {
           failed++;
+          failedNames.push(file.name);
           lastError = res.error ?? "";
         }
       } catch (e) {
         failed++;
+        failedNames.push(file.name);
         lastError = e instanceof Error ? e.message : String(e);
       }
+
+      // Brauzerin yaddaşı təmizləməsi üçün kiçik fasilə
+      await new Promise((r) => setTimeout(r, 35));
     }
 
     setBusy(false);
     if (failed === 0) {
-      setStatus(`✓ ${successCount} məhsul uğurla yaradıldı və əlavə olundu!`);
+      setStatus(`✓ Bütün ${successCount} məhsul uğurla yaradıldı və əlavə olundu!`);
     } else {
+      const namesPreview = failedNames.slice(0, 3).join(", ");
       setStatus(
-        `${successCount} uğurlu, ${failed} xəta. Səbəb: ${lastError}`
+        `${successCount} uğurlu, ${failed} xəta (${namesPreview}${failedNames.length > 3 ? "..." : ""}). ${lastError}`
       );
     }
 
