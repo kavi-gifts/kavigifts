@@ -131,38 +131,18 @@ function applyCollectionPricing(list: any[]) {
 
 export async function getHomeProducts() {
   const supabase = getPublicSupabase();
-  const [{ data: featured }, { data: popular }, { data: recent }] = await Promise.all([
-    supabase
-      .from("products")
-      .select(
-        "id,code,title,slug,type,base_price,sale_price,currency,is_featured,view_count,categories(name,slug),collections(name,slug,bundle_price,bundle_sale_price),product_images(url_thumb,url_medium,sort_order)"
-      )
-      .eq("is_active", true)
-      .eq("is_featured", true)
-      .order("sort_order")
-      .limit(8),
-    supabase
-      .from("products")
-      .select(
-        "id,code,title,slug,type,base_price,sale_price,currency,is_featured,view_count,categories(name,slug),collections(name,slug,bundle_price,bundle_sale_price),product_images(url_thumb,url_medium,sort_order)"
-      )
-      .eq("is_active", true)
-      .order("view_count", { ascending: false })
-      .limit(8),
-    supabase
-      .from("products")
-      .select(
-        "id,code,title,slug,type,base_price,sale_price,currency,is_featured,view_count,categories(name,slug),collections(name,slug,bundle_price,bundle_sale_price),product_images(url_thumb,url_medium,sort_order)"
-      )
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-      .limit(8),
-  ]);
+  const { data: featured } = await supabase
+    .from("products")
+    .select(
+      "id,code,title,slug,type,base_price,sale_price,currency,is_featured,view_count,categories(name,slug),collections(name,slug,bundle_price,bundle_sale_price),product_images(url_thumb,url_medium,sort_order)"
+    )
+    .eq("is_active", true)
+    .eq("is_featured", true)
+    .order("sort_order")
+    .limit(8);
 
   return {
     featured: applyCollectionPricing(featured ?? []),
-    popular: applyCollectionPricing(popular ?? []),
-    recent: applyCollectionPricing(recent ?? []),
   };
 }
 

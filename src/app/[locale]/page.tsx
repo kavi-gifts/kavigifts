@@ -115,14 +115,14 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
             </div>
           </section>
 
-          {/* Recommended Products */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between border-b border-border/80 pb-2">
-              <h2 className="font-serif text-2xl font-bold tracking-tight text-foreground">
-                {t("featured")}
-              </h2>
-            </div>
-            {products.featured.length > 0 ? (
+          {/* Recommended Products (yalnız tövsiyə olunan məhsul olduqda göstərilir) */}
+          {products.featured.length > 0 && (
+            <section className="space-y-4">
+              <div className="flex items-center justify-between border-b border-border/80 pb-2">
+                <h2 className="font-serif text-2xl font-bold tracking-tight text-foreground">
+                  {t("featured")}
+                </h2>
+              </div>
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
                 {products.featured.map((p) => (
                   <ProductCard
@@ -132,60 +132,8 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
                   />
                 ))}
               </div>
-            ) : (
-              <p className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-foreground/60">
-                {t("emptyProducts")}
-              </p>
-            )}
-          </section>
-
-          {/* Most Viewed Products */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between border-b border-border/80 pb-2">
-              <h2 className="font-serif text-2xl font-bold tracking-tight text-foreground">
-                {t("popular")}
-              </h2>
-            </div>
-            {products.popular.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                {products.popular.map((p) => (
-                  <ProductCard
-                    key={p.id}
-                    product={p}
-                    whatsappUrl={settings.whatsapp_url}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-foreground/60">
-                {t("emptyProducts")}
-              </p>
-            )}
-          </section>
-
-          {/* New Arrivals */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between border-b border-border/80 pb-2">
-              <h2 className="font-serif text-2xl font-bold tracking-tight text-foreground">
-                {t("new")}
-              </h2>
-            </div>
-            {products.recent.length > 0 ? (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                {products.recent.map((p) => (
-                  <ProductCard
-                    key={p.id}
-                    product={p}
-                    whatsappUrl={settings.whatsapp_url}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="rounded-xl border border-border bg-surface p-6 text-center text-sm text-foreground/60">
-                {t("emptyProducts")}
-              </p>
-            )}
-          </section>
+            </section>
+          )}
         </div>
       </div>
     </div>
