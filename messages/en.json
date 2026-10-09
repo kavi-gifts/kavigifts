@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "title": "Kavi Gifts — Gifts & Wall Art",
+    "description": "A4 wall art tableaus, 3D figurines, and curated gifts. Order directly via WhatsApp."
+  },
+  "nav": {
+    "home": "Home",
+    "categories": "Categories",
+    "collections": "Collections",
+    "about": "About Us",
+    "contact": "Contact",
+    "search": "Search",
+    "searchPlaceholder": "Search by title or code (e.g. AOT-1)..."
+  },
+  "home": {
+    "heroBadge": "Curated Gifts & Souvenirs",
+    "heroTitle": "Tasteful gifts for every special moment",
+    "heroText": "Unique memories, customized designs, and creative gifts for your loved ones. Browse online and order directly via WhatsApp.",
+    "exploreCollections": "Explore Collections",
+    "featuredCollections": "Featured Collections",
+    "featured": "Recommended",
+    "popular": "Most Viewed",
+    "new": "New Arrivals",
+    "viewAll": "View all",
+    "emptyProducts": "No products added yet."
+  },
+  "product": {
+    "orderNow": "Order via WhatsApp",
+    "orderBundle": "Order entire collection",
+    "priceOnRequest": "Price on request",
+    "code": "Product code",
+    "type": "Type",
+    "views": "views",
+    "category": "Category",
+    "collection": "Collection",
+    "variants": "Choose variant",
+    "details": "Product Details",
+    "inCollection": "More items in this collection"
+  },
+  "collection": {
+    "flipHint": "Flip pages with buttons, arrows, or swipe",
+    "page": "Page",
+    "total": "Total",
+    "viewAsList": "View as list",
+    "viewAsFlip": "Flip as catalog",
+    "bundleOffer": "Special Collection Bundle",
+    "orderThis": "Order this piece",
+    "empty": "No items in this collection yet."
+  },
+  "search": {
+    "title": "Search",
+    "queryFor": "Search results for",
+    "noResults": "No products found.",
+    "placeholder": "Type keyword or product code..."
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "Have a question or want a custom order? Reach out through our social channels.",
+    "instagram": "Instagram",
+    "whatsapp": "WhatsApp",
+    "tiktok": "TikTok",
+    "fastOrder": "Fast Order Line"
+  },
+  "about": {
+    "title": "About Us"
+  }
+}

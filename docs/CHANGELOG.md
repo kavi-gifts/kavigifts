@@ -1,0 +1,42 @@
+# Changelog
+
+## 2026-10-09
+- Layihə skeleti yaradıldı (Next.js 16, Tailwind, TS) — `d:\Tablo\kavigifts`
+- Əlavə: next-intl, @supabase/supabase-js, @supabase/ssr, zod, sharp
+- Əlavə: AGENTS.md, docs/PROGRESS.md, DECISIONS.md, CHANGELOG.md, DB_SCHEMA.md
+- next-intl routing (az/ru/en), `src/proxy.ts`, `messages/*.json`, `src/app/[locale]/layout.tsx|page.tsx`
+- `globals.css`: açıq premium tokenlər; tünd rejim silindi
+- `next.config.ts`: `cacheComponents`/`partialPrefetching` söndürüldü (planda ISR/revalidate istifadə olunur)
+- `.env.example` əlavə edildi; build uğurlu
+- `.env.local` yaradıldı (Supabase açarları; git-ignored)
+- `supabase/migrations/0001_init.sql` yazıldı (hələ icra olunmayıb — istifadəçi SQL Editor-də icra edəcək)
+- Migrationlar 0001/0002/0003 Supabase-də icra olundu və REST ilə yoxlandı (categories=3, collections=1)
+- Admin panel: `src/app/admin/**` (login, panel layout, categories, collections, products, about, settings)
+- `src/lib/auth.ts` (requireAdmin), `src/lib/supabase/server.ts`, `src/lib/forms.ts` (L10n + DeepL), `src/lib/images.ts` (sharp WebP + watermark)
+- `src/proxy.ts`: /admin üçün Supabase sessiya yeniləməsi + noindex; qalanı next-intl
+- `next.config.ts`: serverActions.bodySizeLimit = 4mb
+- Müştəri tərəfi (Faza 3 & 4) tamamlandı:
+  - Header, Footer, LanguageSwitcher (AZ/RU/EN)
+  - CategorySidebar: kateqoriya > alt kateqoriya > kolleksiya ağacı
+  - ProductCard: A4 çərçivə proporsiyası, endirimli qiymət qırmızı xətt, WhatsApp sifariş linki
+  - CollectionFlipbook: onlayn vərəqləmə, oxlar, swipe, miniatür zolağı, A4 divar çərçivəsi effekti, tək tablo sifarişi və paket sifarişi
+  - Səhifələr: Ana səhifə, `/c/[slug]`, `/collection/[slug]`, `/p/[slug]`, `/search`, `/about`, `/contact`
+  - WhatsApp generator: hazır sifariş mətni, kod, qiymət, link formatı
+  - TypeScript və Next.js build yoxlaması 100% uğurla keçdi
+- İstifadəçi rəyi əsasında təkmilləşdirmələr:
+  - Rəng palitrası: qəhvəyi tonlar çıxarıldı, zərif açıq mavi və səma mavisi (`#f6f9fc`, `#0284c7`, `#e2e8f0`) ilə əvəzləndi.
+  - Ana səhifə banneri (Hero): ölçüsü balacalaşdırıldı, zərif mavi qradiyent verildi və mətnlər ümumi hədiyyəlik məhsullar konsepsiyasına uyğunlaşdırıldı.
+  - Kolleksiya səhifəsi: default olaraq "Siyahı kimi bax" (Grid) rejiminə keçirildi, "Xüsusi paket" banneri silindi.
+  - Kolleksiya qiymət şamil olunması: kolleksiya üçün qoyulan standart qiymət və endirim kolleksiyadakı bütün məhsullara avtomatik şamil edilir (fərdi qiymət qoyulmayıbsa).
+  - Admin kolleksiya daxilində Toplu Şəkil Yükləmə (Bulk Upload): admin bir dəfəyə 10-20 şəkil seçir, hər birindən avtomatik məhsul yaranır, adı faylın adı olur, kolleksiyanın təsviri və qiyməti şamil edilir.
+  - Şəkillərə avtomatik watermark vurulması tamamilə yığışdırıldı: şəkillər artıq sistem tərəfindən heç bir watermark mətni əlavə edilmədən, sadəcə 3 ölçüyə (thumb, medium, large) sıxılaraq sürətli WebP formatına çevrilir və Supabase Storage-ə yüklənir. Admin ayarlardan da watermark sahəsi çıxarıldı.
+  - Ana səhifədəki böyük Hero banneri tamamilə yığışdırıldı: səhifə birbaşa sol kateqoriya paneli və sağda seçilmiş kolleksiyalar / məhsul vitrini ilə açılır.
+  - Kolleksiya kartlarından "Paket: 30 AZN" yazısı tamamilə yığışdırıldı: kolleksiyalar artıq təmiz "A4 Tablolar" və "Kolleksiyaya bax →" keçidi ilə göstərilir.
+  - Saytın başlığında (Header-də yuxarı solda) "Kavi Gifts" mətni əvəzinə istifadəçinin təqdim etdiyi zərif qırmızı "KaVi" bantlı loqo şəkli yerləşdirildi. Həmçinin loqo Footer-ə və brauzer tabı ikonuna (favicon) inteqrasiya edildi.
+  - Kolleksiyalara unikal kod prefiksi (məs. AOT, NAR, HP) əlavə edildi:
+    - Yeni kolleksiya yaradılarkən və ya redaktə edilərkən unikal kod tələb olunur.
+    - Kolleksiyaya şəkil yükləndikdə (istər toplu, istər fərdi) məhsul kodları avtomatik sıra ilə kolleksiyanın prefiksi ilə verilir (məs: AOT-001, AOT-002, AOT-003...).
+    - Kolleksiyanın kodu redaktə edilib dəyişdirildikdə həmin kolleksiyadakı bütün mövcud məhsulların kodları da avtomatik olaraq yeni koda uyğun ardıcıl yenilənir.
+    - `supabase/migrations/0004_collection_code.sql` hazırlandı.
+  - React Hydration Mismatch xətası həll edildi: WhatsApp sifariş linklərində server (SSR) və klient renderi zamanı URL prefiksinin fərqliliyi `NEXT_PUBLIC_SITE_URL` və dinamik `onClick` hadisəsi ilə aradan qaldırıldı, bütün müştəri səhifələrində xətasız hamar yüklənmə təmin edildi.
+  - WhatsApp mesaj şablonu təmizləndi: Windows və brauzer protokollarında sual işarəsinə (?) və ya naməlum simvollara çevrilən 4-baytlıq emojilər ləğv edildi, yerinə bütün platformalarda 100% dəstəklənən zərif nöqtələr (`•`) və WhatsApp-ın rəsmi qalın mətn sintaksisi (`*Kod:*`, `*Məhsul:*`, `*Qiymət:*`, `*Keçid:*`) tətbiq edildi.

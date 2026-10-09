@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "title": "Kavi Gifts — Hədiyyəlik məhsullar",
+    "description": "Tablolar, 3D fiqurlar və hədiyyəlik məhsullar. WhatsApp ilə asan sifariş."
+  },
+  "nav": {
+    "home": "Ana səhifə",
+    "categories": "Kateqoriyalar",
+    "collections": "Kolleksiyalar",
+    "about": "Haqqımızda",
+    "contact": "Əlaqə",
+    "search": "Axtarış",
+    "searchPlaceholder": "Məhsul adı və ya kod ilə axtarın (məs. AOT-1)..."
+  },
+  "home": {
+    "heroBadge": "Özəl Hədiyyələr & Suvenirlər",
+    "heroTitle": "Hər anı xüsusi edən zövqlü hədiyyələr",
+    "heroText": "Sevdikləriniz üçün unikal xatirələr, xüsusi dizaynlar və yaradıcı hədiyyəlik məhsullar. Bəyəndiyinizi seçin, dərhal WhatsApp ilə sifariş edin.",
+    "exploreCollections": "Kolleksiyalara bax",
+    "featuredCollections": "Seçilmiş Kolleksiyalar",
+    "featured": "Tövsiyə olunanlar",
+    "popular": "Ən çox baxılanlar",
+    "new": "Yeni əlavələr",
+    "viewAll": "Hamısına bax",
+    "emptyProducts": "Hələlik məhsul əlavə olunmayıb."
+  },
+  "product": {
+    "orderNow": "WhatsApp ilə sifariş et",
+    "orderBundle": "Bütün kolleksiyanı sifariş et",
+    "priceOnRequest": "Qiymət üçün yazın",
+    "code": "Məhsul kodu",
+    "type": "Növ",
+    "views": "baxış",
+    "category": "Kateqoriya",
+    "collection": "Kolleksiya",
+    "variants": "Variant seçin",
+    "details": "Məhsul haqqında",
+    "inCollection": "Bu kolleksiyadakı digər işlər"
+  },
+  "collection": {
+    "flipHint": "Səhifələri ox düymələri və ya toxunaraq vərəqləyə bilərsiniz",
+    "page": "Səhifə",
+    "total": "Cəmi",
+    "viewAsList": "Siyahı kimi bax",
+    "viewAsFlip": "Kataloq kimi vərəqlə",
+    "bundleOffer": "Xüsusi Kolleksiya Paketi",
+    "orderThis": "Bu tablonu sifariş et",
+    "empty": "Bu kolleksiyada hələlik məhsul yoxdur."
+  },
+  "search": {
+    "title": "Axtarış",
+    "queryFor": "üzrə axtarış nəticələri",
+    "noResults": "Heç bir məhsul tapılmadı.",
+    "placeholder": "Axtarış üçün söz və ya kod yazın..."
+  },
+  "contact": {
+    "title": "Bizimlə əlaqə",
+    "subtitle": "Sualınız var və ya fərdi sifariş vermək istəyirsiniz? Sosial şəbəkələrimizdən bizə yazın.",
+    "instagram": "Instagram",
+    "whatsapp": "WhatsApp",
+    "tiktok": "TikTok",
+    "fastOrder": "Sürətli Sifariş Xətti"
+  },
+  "about": {
+    "title": "Haqqımızda"
+  }
+}
