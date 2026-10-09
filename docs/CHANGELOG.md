@@ -40,3 +40,4 @@
     - `supabase/migrations/0004_collection_code.sql` hazırlandı.
   - React Hydration Mismatch xətası həll edildi: WhatsApp sifariş linklərində server (SSR) və klient renderi zamanı URL prefiksinin fərqliliyi `NEXT_PUBLIC_SITE_URL` və dinamik `onClick` hadisəsi ilə aradan qaldırıldı, bütün müştəri səhifələrində xətasız hamar yüklənmə təmin edildi.
   - WhatsApp mesaj şablonu təmizləndi: Windows və brauzer protokollarında sual işarəsinə (?) və ya naməlum simvollara çevrilən 4-baytlıq emojilər ləğv edildi, yerinə bütün platformalarda 100% dəstəklənən zərif nöqtələr (`•`) və WhatsApp-ın rəsmi qalın mətn sintaksisi (`*Kod:*`, `*Məhsul:*`, `*Qiymət:*`, `*Keçid:*`) tətbiq edildi.
+  - Bütün layihə və sənədləşmə GitHub-a push edildi: `https://github.com/kavi-gifts/kavigifts` (main budağı, Vercel deploy üçün hazır).

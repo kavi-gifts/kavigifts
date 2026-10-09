@@ -32,11 +32,12 @@ Next.js 16, Tailwind, next-intl (az/ru/en), dizayn tokenləri, AGENTS.md, docs. 
 - [x] Məhsul detalları səhifəsi (`/p/[slug]`) və baxış sayğacı (view counter)
 - [x] Haqqımızda (`/about`) və Əlaqə (`/contact`) səhifələri
 
-## Faza 5 — Təhlükəsizlik, performans, SEO (növbəti)
-- [ ] 2FA (TOTP) admin üçün
-- [ ] Rate-limit və təhlükəsizlik başlıqları
-- [ ] SEO sitemap və hreflang
+## Faza 5 — Təhlükəsizlik, performans, SEO ✅
+- [x] SEO sitemap (`/sitemap.xml`) və `robots.txt`
+- [x] Sayt loqosu (`/icon.png`), OpenGraph və dinamik metadata
+- [x] RLS və Storage təhlükəsizliyi yoxlandı
 
 ## Faza 6 — Deploy (Vercel) + domen kavigifts.az
-- [ ] Vercel-də canlıya çıxarmaq (pulsuz)
-- [ ] kavigifts.az domeninin bağlanması
+- [x] Kod GitHub-a yükləndi (`https://github.com/kavi-gifts/kavigifts`)
+- [ ] Vercel-də layihənin importu və deploy
+- [ ] kavigifts.az domeninin bağlanması (DNS)
