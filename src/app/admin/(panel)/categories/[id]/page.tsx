@@ -19,9 +19,18 @@ export default async function CategoryEditPage({
 
   const { data: all } = await supabase
     .from("categories")
-    .select("id,name")
+    .select("id,name,sort_order")
     .order("sort_order");
   const parents = (all ?? []).filter((c) => c.id !== id);
+
+  let nextSortOrder = 0;
+  if (isNew) {
+    const maxSort = (all ?? []).reduce(
+      (m, c) => (typeof c.sort_order === "number" && c.sort_order > m ? c.sort_order : m),
+      -1
+    );
+    nextSortOrder = maxSort + 1;
+  }
 
   return (
     <div className="max-w-lg">
@@ -44,7 +53,7 @@ export default async function CategoryEditPage({
           </select>
         </Field>
         <Field label="Sıra">
-          <input name="sort_order" type="number" defaultValue={cat?.sort_order ?? 0} className={inputCls} />
+          <input name="sort_order" type="number" defaultValue={cat?.sort_order ?? nextSortOrder} className={inputCls} />
         </Field>
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" name="is_active" defaultChecked={cat?.is_active ?? true} />

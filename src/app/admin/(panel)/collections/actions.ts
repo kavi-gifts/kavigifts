@@ -50,6 +50,22 @@ export async function saveCollection(formData: FormData) {
     oldCode = existingCol?.code ?? null;
   }
 
+  let sortOrder = num(formData, "sort_order");
+  if (sortOrder === null) {
+    if (!id) {
+      const { data: allCols } = await supabase
+        .from("collections")
+        .select("sort_order");
+      const maxSort = (allCols ?? []).reduce(
+        (m, c) => (typeof c.sort_order === "number" && c.sort_order > m ? c.sort_order : m),
+        -1
+      );
+      sortOrder = maxSort + 1;
+    } else {
+      sortOrder = 0;
+    }
+  }
+
   const row = {
     category_id: categoryId,
     code: rawCode,
@@ -61,7 +77,7 @@ export async function saveCollection(formData: FormData) {
     currency,
     is_featured: bool(formData, "is_featured"),
     is_active: bool(formData, "is_active"),
-    sort_order: num(formData, "sort_order") ?? 0,
+    sort_order: sortOrder,
   };
 
   const { error } = id

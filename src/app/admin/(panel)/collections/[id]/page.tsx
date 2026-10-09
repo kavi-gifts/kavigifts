@@ -26,6 +26,19 @@ export default async function CollectionEditPage({
     : await supabase.from("collections").select("*").eq("id", id).maybeSingle();
   if (!isNew && !col) notFound();
 
+  // Yeni kolleksiya yaradıldıqda Sıra avtomatik max + 1 olsun
+  let nextSortOrder = 0;
+  if (isNew) {
+    const { data: allCols } = await supabase
+      .from("collections")
+      .select("sort_order");
+    const maxSort = (allCols ?? []).reduce(
+      (m, c) => (typeof c.sort_order === "number" && c.sort_order > m ? c.sort_order : m),
+      -1
+    );
+    nextSortOrder = maxSort + 1;
+  }
+
   const [{ data: cats }, { data: prods }] = await Promise.all([
     supabase.from("categories").select("id,name").order("sort_order"),
     !isNew
@@ -135,7 +148,7 @@ export default async function CollectionEditPage({
             <input
               name="sort_order"
               type="number"
-              defaultValue={col?.sort_order ?? 0}
+              defaultValue={col?.sort_order ?? nextSortOrder}
               className={inputCls}
             />
           </Field>
