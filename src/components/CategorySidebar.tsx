@@ -18,11 +18,14 @@ export function CategorySidebar({
   const locale = useLocale();
   const t = useTranslations("nav");
 
-  // Keep all top categories open by default for discoverability
+  // Keep all categories and subcategories open by default
   const [openNodes, setOpenNodes] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     for (const c of tree) {
       init[c.id] = true;
+      for (const sub of c.children) {
+        init[sub.id] = true;
+      }
     }
     return init;
   });
@@ -108,24 +111,61 @@ export function CategorySidebar({
 
                   {/* Subcategories (e.g. Animelər) */}
                   {cat.children.map((sub) => {
+                    const isSubOpen = openNodes[sub.id] ?? true;
                     const isSubActive = currentCategorySlug === sub.slug;
                     const subHasCollections = sub.collections.length > 0;
+                    const hasSubChildren = subHasCollections || (sub.children && sub.children.length > 0);
+
                     return (
                       <div key={sub.id} className="space-y-1 pt-1">
-                        <Link
-                          href={`/c/${sub.slug}`}
-                          className={`block rounded-lg px-2 py-1 text-xs font-medium transition-colors ${
-                            isSubActive
-                              ? "bg-gold/15 font-semibold text-gold"
-                              : "text-foreground/80 hover:text-foreground hover:bg-background"
-                          }`}
-                        >
-                          ▸ {pickL10n(sub.name, locale)}
-                        </Link>
+                        {/* Subcategory row with toggle button on the LEFT */}
+                        <div className="flex items-center gap-1">
+                          {hasSubChildren ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggle(sub.id);
+                              }}
+                              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-foreground/50 hover:bg-black/5 hover:text-foreground transition-colors"
+                              aria-label={isSubOpen ? "Bağla" : "Aç"}
+                              title={isSubOpen ? "Bağla" : "Aç"}
+                            >
+                              <svg
+                                className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                                  isSubOpen ? "rotate-90 text-gold" : "text-foreground/40"
+                                }`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2.5}
+                                  d="M9 5l7 7-7 7"
+                                />
+                              </svg>
+                            </button>
+                          ) : (
+                            <span className="w-6 shrink-0" />
+                          )}
 
-                        {/* Collections inside this subcategory (e.g. Attack on Titan) */}
-                        {subHasCollections && (
-                          <div className="ml-3 space-y-0.5 border-l border-border/60 pl-2">
+                          <Link
+                            href={`/c/${sub.slug}`}
+                            className={`flex-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors ${
+                              isSubActive
+                                ? "bg-gold/15 font-semibold text-gold"
+                                : "text-foreground/80 hover:text-foreground hover:bg-background"
+                            }`}
+                          >
+                            {pickL10n(sub.name, locale)}
+                          </Link>
+                        </div>
+
+                        {/* Collections inside this subcategory (e.g. Attack on Titan, Demon Slayer) */}
+                        {isSubOpen && subHasCollections && (
+                          <div className="ml-5 space-y-0.5 border-l border-border/60 pl-2.5">
                             {sub.collections.map((subCol) => {
                               const isSubColActive =
                                 currentCollectionSlug === subCol.slug;

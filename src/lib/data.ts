@@ -279,22 +279,110 @@ export async function getProductBySlug(slug: string) {
   };
 }
 
-export async function searchProducts(q: string) {
-  if (!q.trim()) return [];
-  const supabase = getPublicSupabase();
-  const term = q.trim();
+export type SearchResults = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  collections: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  products: any[];
+};
 
-  // Try text search + partial code / title match
-  const { data } = await supabase
-    .from("products")
+export async function searchCatalog(q: string): Promise<SearchResults> {
+  const clean = q.trim();
+  if (!clean) return { collections: [], products: [] };
+  const supabase = getPublicSupabase();
+
+  // 1. Ağıllı Kod Normalizasiyası: məs. "AOT-1", "AOT 1", "AOT1", "DS 15", "15"
+  const codeCandidates: string[] = [];
+  const codeMatch = clean.match(/^([a-zA-Z]+)[-_ ]*([0-9]+)$/);
+  if (codeMatch) {
+    const prefix = codeMatch[1].toUpperCase();
+    const num = parseInt(codeMatch[2], 10);
+    codeCandidates.push(`${prefix}-${String(num).padStart(3, "0")}`);
+    codeCandidates.push(`${prefix}-${String(num).padStart(2, "0")}`);
+    codeCandidates.push(`${prefix}-${num}`);
+  } else if (/^\d+$/.test(clean)) {
+    const num = parseInt(clean, 10);
+    codeCandidates.push(`-${String(num).padStart(3, "0")}`);
+    codeCandidates.push(`-${String(num).padStart(2, "0")}`);
+  }
+
+  // 2. Kolleksiyaları axtar (ad, kod, slug, təsvir üzrə)
+  const { data: cols } = await supabase
+    .from("collections")
     .select(
-      "id,code,title,slug,type,base_price,sale_price,currency,collections(name,slug),categories(name,slug),product_images(url_thumb,sort_order)"
+      "id,name,code,slug,description,cover_image,bundle_price,bundle_sale_price,currency,categories(name,slug),products(id,product_images(url_thumb))"
     )
     .eq("is_active", true)
-    .or(`code.ilike.%${term}%,title->>az.ilike.%${term}%,title->>ru.ilike.%${term}%,title->>en.ilike.%${term}%`)
-    .limit(40);
+    .or(
+      `name->>az.ilike.%${clean}%,name->>en.ilike.%${clean}%,name->>ru.ilike.%${clean}%,code.ilike.%${clean}%,slug.ilike.%${clean}%,description->>az.ilike.%${clean}%`
+    )
+    .limit(8);
 
-  return data ?? [];
+  const colIds = (cols ?? []).map((c) => c.id);
+
+  // 3. Kateqoriyaları axtar (əgər "Anime" və ya "Tablo" axtarılıbsa)
+  const { data: cats } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("is_active", true)
+    .or(
+      `name->>az.ilike.%${clean}%,name->>en.ilike.%${clean}%,name->>ru.ilike.%${clean}%,slug.ilike.%${clean}%`
+    );
+
+  const catIds = (cats ?? []).map((c) => c.id);
+
+  // 4. Məhsulları axtar
+  const orConditions = [
+    `code.ilike.%${clean}%`,
+    `title->>az.ilike.%${clean}%`,
+    `title->>en.ilike.%${clean}%`,
+    `title->>ru.ilike.%${clean}%`,
+    `slug.ilike.%${clean}%`,
+  ];
+  for (const c of codeCandidates) {
+    if (c.startsWith("-")) {
+      orConditions.push(`code.ilike.%${c}%`);
+    } else {
+      orConditions.push(`code.eq.${c}`);
+    }
+  }
+  if (colIds.length > 0) {
+    orConditions.push(`collection_id.in.(${colIds.join(",")})`);
+  }
+  if (catIds.length > 0) {
+    orConditions.push(`category_id.in.(${catIds.join(",")})`);
+  }
+
+  const { data: prods } = await supabase
+    .from("products")
+    .select(
+      "id,code,title,slug,type,base_price,sale_price,currency,is_featured,view_count,collections(name,slug,bundle_price,bundle_sale_price),categories(name,slug),product_images(url_thumb,url_medium,sort_order)"
+    )
+    .eq("is_active", true)
+    .or(orConditions.join(","))
+    .limit(80);
+
+  // Dəqiq kod uyğunluğunu ən birinci sıraya qoy
+  const upperClean = clean.toUpperCase();
+  const sortedProds = (prods ?? []).sort((a, b) => {
+    const aCode = String(a.code).toUpperCase();
+    const bCode = String(b.code).toUpperCase();
+    if (codeCandidates.includes(aCode) && !codeCandidates.includes(bCode)) return -1;
+    if (!codeCandidates.includes(aCode) && codeCandidates.includes(bCode)) return 1;
+    if (aCode === upperClean && bCode !== upperClean) return -1;
+    if (bCode === upperClean && aCode !== upperClean) return 1;
+    return 0;
+  });
+
+  return {
+    collections: cols ?? [],
+    products: applyCollectionPricing(sortedProds),
+  };
+}
+
+export async function searchProducts(q: string) {
+  const res = await searchCatalog(q);
+  return res.products;
 }
 
 export async function getStaticPage(key: string) {
